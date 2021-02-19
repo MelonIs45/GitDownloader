@@ -1,5 +1,5 @@
-## GitDownloader
-GitHub CLI utility that lets you download repositories' release assets without the need of opening a browser and searching
+## GithubDownloader
+A GitHub CLI utility that lets you download repositories' release assets without the need of opening a browser and searching
 
 **Features:**
 * Lists all you might need to know when choosing the repository and release asset.
