@@ -10,7 +10,7 @@ using NfdSharp;
 
 namespace GithubDownloader
 {
-    class Program 
+    internal class Program 
     {
         private static async Task Main(string[] args)
         {
