@@ -12,6 +12,20 @@ A GitHub CLI utility that lets you download repositories' release assets without
 3. Place your github token into the `token.txt` file.
 4. Re-run `GithubDownloader.exe` and enjoy!.
 
+**Command Line Arguements:**
+When using command line arguements, 3 parameters are specifed,
+here is the style of command the program accepts:
+```
+GithubDownloader.exe <repo-owner>/<repo-name> <path-to-download-into> <extract>
+```
+An example of this would be the following:
+```
+GithubDownloader.exe MelonIs45/GithubDownloader C:/Demo/Output true
+```
+NOTE: If there are any paths that have spaces in them, surround them with `"`.
+
+When you run with arguments, you will still have to select the asset you'd like to download.
+
 ## Building
 
 **Prerequisites to build**:
