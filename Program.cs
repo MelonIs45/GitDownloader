@@ -54,7 +54,32 @@ namespace GithubDownloader
                 Console.WriteLine("Invalid token!");
                 Environment.Exit(126);
             }
-            
+
+            switch (args.Length)
+            {
+                case 3:
+                    var repos = client.Repository.GetAllForUser(args[0].Split('/')[0]);
+                    for (var i = 0; i < repos.Result.Count; i++)
+                    {
+                        repoIdsDictionary.Add(i, repos.Result[i]);
+                    }
+                    
+                    int assetId = repoIdsDictionary.Where(repo => repo.Value.Name == args[0].Split('/')[1])
+                        .Select(repo => repo.Key)
+                        .FirstOrDefault();
+                    
+                    var asset = GetAsset(client, ref assetIdsDictionary, repoIdsDictionary[assetId]);
+                    await DownloadZip(token, assetIdsDictionary[asset].BrowserDownloadUrl, args[1], args[2]);
+                    Environment.Exit(0);
+                    break;
+                case 0:
+                    break;
+                default:
+                    Console.WriteLine("Not enough arguments specified!, must be in order of <user>/<repo> <path-to-download-into> <extract>");
+                    Environment.Exit(126);
+                    break;
+            }
+
             Console.Write("Type the repo owner's username: ");
             var owner = Console.ReadLine();
             
@@ -72,17 +97,8 @@ namespace GithubDownloader
             if (repoIdsDictionary.ContainsKey(repoId))
             {
                 Console.WriteLine("Valid repo!, Listing all downloads from latest release...");
-                var releases = client.Repository.Release.GetAll(repoIdsDictionary[repoId].Id);
-                var releaseAssets = client.Repository.Release.GetAllAssets(repoIdsDictionary[repoId].Id, releases.Result[0].Id);
                 
-                for (var i = 0; i < releaseAssets.Result.Count; i++)
-                {
-                    Console.WriteLine($"ID: {i + 1}, Asset: {releaseAssets.Result[i].Name}");
-                    assetIdsDictionary.Add(i + 1, releaseAssets.Result[i]);
-                }
-
-                Console.Write($"\nSelect the id associated with the asset you'd like to download: ");
-                var assetId = Convert.ToInt32(Console.ReadLine());
+                var assetId = GetAsset(client, ref assetIdsDictionary, repoIdsDictionary[repoId]);
 
                 if (assetIdsDictionary.ContainsKey(assetId))
                 {
@@ -106,24 +122,54 @@ namespace GithubDownloader
                     Console.Write("Would you like the file to be automatically extracted? (Y/n) ");
                     var extract = Console.ReadLine();
                     
-                    WebClient webClient = new WebClient();
-                    webClient.Headers.Add("authorization", $"token {token}");
-
-                    await webClient.DownloadFileTaskAsync(new Uri(assetIdsDictionary[assetId].BrowserDownloadUrl), $"{path}/{assetIdsDictionary[assetId].Name}");
-
-                    Console.WriteLine($"\nSuccessfully downloaded {assetIdsDictionary[assetId].Name}!");
-                    if (extract == "Y")
-                    {
-                        Console.WriteLine($"Extracting {assetIdsDictionary[assetId].Name}...");
-                        ZipFile.ExtractToDirectory($"{path}/{assetIdsDictionary[assetId].Name}", path ?? string.Empty, true);
-                        File.Delete($"{path}/{assetIdsDictionary[assetId].Name}");
-                    }
-
-                    Console.WriteLine("Done!");
+                    await DownloadZip(token, assetIdsDictionary[assetId].BrowserDownloadUrl, path, extract);
                 }
             }
 
             Console.ReadLine();
+        }
+
+        private static int GetAsset(GitHubClient client, ref Dictionary<int, ReleaseAsset> assetIdsDictionary, Repository repo)
+        {
+            var releases = client.Repository.Release.GetAll(repo.Id);
+            var releaseAssets = client.Repository.Release.GetAllAssets(repo.Id, releases.Result[0].Id);
+                
+            for (var i = 0; i < releaseAssets.Result.Count; i++)
+            {
+                Console.WriteLine($"ID: {i + 1}, Asset: {releaseAssets.Result[i].Name}");
+                assetIdsDictionary.Add(i + 1, releaseAssets.Result[i]);
+            }
+            
+            Console.Write($"\nSelect the id associated with the asset you'd like to download: ");
+            var assetId = Convert.ToInt32(Console.ReadLine());
+
+            return assetId;
+        }
+
+        private static async Task DownloadZip(string token, string assetFileUrl, string pathToDownloadInto, string extract)
+        {
+            WebClient webClient = new WebClient();
+            webClient.Headers.Add("authorization", $"token {token}");
+
+            var assetName = assetFileUrl.Split('/').Last();
+
+            await webClient.DownloadFileTaskAsync(new Uri(assetFileUrl), $"{pathToDownloadInto}/{assetName}");
+
+            Console.WriteLine($"\nSuccessfully downloaded {assetName}!");
+            
+            if (extract.ToLower() == "y" || extract.ToLower() == "true")
+            {
+                if (assetFileUrl.Split('.').Last() != "zip")
+                {
+                    Console.WriteLine("The file you are trying to extract isn't supported for decompression at the moment, file downloaded only.");
+                    Environment.Exit(127);
+                }
+                Console.WriteLine($"Extracting {assetName}...");
+                ZipFile.ExtractToDirectory($"{pathToDownloadInto}/{assetName}", pathToDownloadInto ?? string.Empty, true);
+                File.Delete($"{pathToDownloadInto}/{assetName}");
+            }
+            
+            Console.WriteLine("Done!");
         }
     }
 }
