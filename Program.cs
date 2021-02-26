@@ -10,7 +10,7 @@ using NfdSharp;
 
 namespace GithubDownloader
 {
-    internal class Program 
+    internal static class Program 
     {
         private static async Task Main(string[] args)
         {
@@ -25,7 +25,7 @@ namespace GithubDownloader
             
             try
             {
-                token = File.ReadAllText("token.txt");
+                token = await File.ReadAllTextAsync("token.txt");
             }
             catch (FileNotFoundException)
             {
